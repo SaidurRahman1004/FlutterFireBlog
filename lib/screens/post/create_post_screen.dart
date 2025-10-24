@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter_fire_app/services/firestore_service.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
+import '../../services/image_upload_service.dart';
 
 class CreatePostScreen extends StatefulWidget {
   const CreatePostScreen({super.key});
@@ -17,20 +19,25 @@ class CreatePostScreen extends StatefulWidget {
 class _CreatePostScreenState extends State<CreatePostScreen> {
   final _titleController = TextEditingController();
   final _contentController = TextEditingController();
-  File? _image;
+  File? _image; ////variable For Store Selected Pic
   bool _loading = false;
+  String _loadingText = "Publishing...."; //loadind Text For Pic
   final FirestoreService _firestoreService = FirestoreService();
+  final ImageUploadService _imageUploadService = ImageUploadService();
 
-  //Imqge Pick Function
-  Future<XFile?> pickeImage() async {
-    final pickedImg = await ImagePicker().pickImage(
+  //Imqge Pick From Galary Function
+  Future<void> pickeImage() async {
+    final ImagePicker picker = ImagePicker();
+    //Select Image From Gallery
+    final pickedImg = await picker.pickImage(
       source: ImageSource.gallery,
       imageQuality: 75,
     );
-    if (pickedImg != null)
+    if (pickedImg != null) {
       setState(() {
         _image = File(pickedImg.path);
       });
+    }
   }
 
   //Post Publish And Add Functions
@@ -45,13 +52,33 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     setState(() {
       _loading = true;
     });
+    String? imageUrl; //For Srore Image Url
 
     try {
+      //if Image Selected then Upload Image
+      if (_image != null) {
+        setState(() {
+          _loadingText = "Uploading Image...";
+        });
+
+        ///Upload Image to ImgBB
+        imageUrl = await _imageUploadService.uploadImage(
+          _image!,
+        ); //_image its variable For Store Selected Pic
+        if (imageUrl == null) {
+          throw Exception('Failed to upload image');
+        }
+      }
+
+      setState(() {
+        _loadingText = "Post Saveing...";
+      });
+
       //send data to FireStore
       await _firestoreService.createPost(
         _titleController.text,
         _contentController.text,
-        imageUrl: null,
+        imageUrl: imageUrl,
       );
       //if Success Loading stop and go to previous page
       setState(() {
@@ -92,6 +119,36 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            GestureDetector(
+              onTap: pickeImage,
+              child: Container(
+                height: 200,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Colors.grey[200],
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey[400]!),
+                ),
+                child: _image != null
+                    ? ClipRect(child: Image.file(_image!, fit: BoxFit.cover))
+                    : Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.add_a_photo,
+                            size: 40,
+                            color: Colors.grey[400],
+                          ),
+                          SizedBox(height: 10),
+                          Text(
+                            "Add Image",
+                            style: TextStyle(color: Colors.grey[400]),
+                          ),
+                        ],
+                      ),
+              ),
+            ),
+            SizedBox(height: 10),
             TextField(
               controller: _titleController,
               decoration: const InputDecoration(
@@ -108,18 +165,37 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
               ),
               maxLines: 5,
             ),
-            const SizedBox(height: 10),
-            _image != null
-                ? Image.file(_image!, height: 150)
-                : TextButton.icon(
-                    onPressed: pickeImage,
-                    icon: Icon(Icons.image),
-                    label: Text("Select Cover Image"),
-                  ),
+
             SizedBox(height: 20),
-            _loading
-                ? SpinKitCircle(color: Colors.red,size: 40,)
-                : ElevatedButton(onPressed: _publishPost, child: Text("post")),
+            ElevatedButton(
+              onPressed: _loading ? null : _publishPost,
+              child: Text(_loading ? _loadingText : "Publish"),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                textStyle: const TextStyle(fontSize: 18),
+              ),
+            ),
+            if (_loading)
+              Container(
+                color: Colors.black.withOpacity(0.5),
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SpinKitThreeBounce(
+                        color: Colors.white,
+                        size: 30,
+                      ),
+                      SizedBox(height: 10),
+                      Text(
+                        _loadingText,
+                        style: TextStyle(color: Colors.blue),
+                      ),
+
+                    ],
+                  ),
+                ),
+              )
           ],
         ),
       ),

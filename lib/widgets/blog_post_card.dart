@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/post_model.dart';
 import '../services/firestore_service.dart';
 import '../screens/post/edit_post_screen.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
 
 class BlogPostCard extends StatelessWidget {
   final PostModel post;
@@ -84,6 +85,7 @@ class BlogPostCard extends StatelessWidget {
       elevation: 3.5,
       margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9.0)),
+      clipBehavior: Clip.antiAlias,   //To match the image to the corner of the card
       child: Container(
         decoration: BoxDecoration(
           border: Border(
@@ -134,6 +136,39 @@ class BlogPostCard extends StatelessWidget {
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
             ),
+            const SizedBox(height: 10.0),
+            //If Cpver Image Url Exist Then Show Imag
+
+            if (post.imageUrl != null && post.imageUrl!.isNotEmpty) ...[
+              Container(
+                height: 180,
+                width: double.infinity,
+                child: Image.network(
+                  post.imageUrl!,
+                  fit: BoxFit.cover,
+                  //Loading Builder When Image Loading
+                  loadingBuilder: (context, child, loadingProgress){
+                    if(loadingProgress == null) return child;
+                    return Center(
+                      child: SpinKitCircle(
+                        color: Theme.of(context).primaryColor,
+                        size: 50.0,
+                      ),
+                    );
+                  },
+                  //Error When Image Not Load
+                  errorBuilder: (_,erroe,stackTrace)=>Center(
+                    child: Icon(
+                      Icons.broken_image,
+                      color: Colors.grey[400],
+                      size: 40.0,
+                    ),
+                  ),
+                  ),
+                ),
+
+
+            ]
 
           ],
         ),
