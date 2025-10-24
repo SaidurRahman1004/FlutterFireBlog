@@ -69,6 +69,7 @@ class FirestoreService {
       'title': newtitle,
       'content': nweContent,
       'timestamp': Timestamp.now(), // Update the timestamp to the current time
+      'imageUrl': newImgUrl, // Add the new image URL to the updated data if provided //Passing newImageUrl directly. , If it is null, the 'imageUrl' field in Firestore will be deleted (or set to null)., If it is a URL, the field will be updated.
     };
 
     // Check if the new image URL is provided and update the 'imageUrl' field accordingly

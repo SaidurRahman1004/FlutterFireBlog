@@ -152,7 +152,7 @@ class BlogPostCard extends StatelessWidget {
                     return Center(
                       child: SpinKitCircle(
                         color: Theme.of(context).primaryColor,
-                        size: 50.0,
+                        size: 40.0,
                       ),
                     );
                   },

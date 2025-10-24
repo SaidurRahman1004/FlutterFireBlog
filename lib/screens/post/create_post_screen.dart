@@ -19,7 +19,8 @@ class CreatePostScreen extends StatefulWidget {
 class _CreatePostScreenState extends State<CreatePostScreen> {
   final _titleController = TextEditingController();
   final _contentController = TextEditingController();
-  File? _image; ////variable For Store Selected Pic
+  // File? _image; ////variable For Store Selected Pic
+  XFile? _pickedImage;
   bool _loading = false;
   String _loadingText = "Publishing...."; //loadind Text For Pic
   final FirestoreService _firestoreService = FirestoreService();
@@ -35,7 +36,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     );
     if (pickedImg != null) {
       setState(() {
-        _image = File(pickedImg.path);
+        // _image = File(pickedImg.path);
+        _pickedImage = pickedImg; //Direct Xfile
       });
     }
   }
@@ -56,14 +58,14 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
     try {
       //if Image Selected then Upload Image
-      if (_image != null) {
+      if (_pickedImage != null) {
         setState(() {
           _loadingText = "Uploading Image...";
         });
 
         ///Upload Image to ImgBB
         imageUrl = await _imageUploadService.uploadImage(
-          _image!,
+          _pickedImage!,
         ); //_image its variable For Store Selected Pic
         if (imageUrl == null) {
           throw Exception('Failed to upload image');
@@ -101,6 +103,15 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       ).showSnackBar(SnackBar(content: Text('Post Faild: ${e.toString()}')));
     }
   }
+//Remove Image
+  void _removeImage() {
+    setState(() {
+      _pickedImage = null;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Image Removed,Save...')),
+    );
+  }
 
   // It is important to dispose the controllers when the widget is disposed (closed).
   @override
@@ -129,8 +140,11 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: Colors.grey[400]!),
                 ),
-                child: _image != null
-                    ? ClipRect(child: Image.file(_image!, fit: BoxFit.cover))
+                child: _pickedImage != null
+                    ? ClipRect(child: kIsWeb ? Image.network(_pickedImage!.path,fit: BoxFit.cover): Image.file(
+                  File(_pickedImage!.path),
+                  fit: BoxFit.cover,
+                ) )
                     : Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -148,7 +162,22 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                       ),
               ),
             ),
-            SizedBox(height: 10),
+            Row(
+              children: [
+                if (_pickedImage != null)...[
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _removeImage,
+                      child: Text("⛔"),
+                    ),
+
+                  )
+                ]
+
+
+              ],
+            ),
+            SizedBox(height: 20),
             TextField(
               controller: _titleController,
               decoration: const InputDecoration(
@@ -156,7 +185,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                 border: OutlineInputBorder(),
               ),
             ),
-            SizedBox(height: 10),
+            SizedBox(height: 20),
             TextField(
               controller: _contentController,
               decoration: const InputDecoration(
@@ -175,15 +204,16 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                 textStyle: const TextStyle(fontSize: 18),
               ),
             ),
+            SizedBox(height: 15),
             if (_loading)
               Container(
-                color: Colors.black.withOpacity(0.5),
+
                 child: Center(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      SpinKitThreeBounce(
-                        color: Colors.white,
+                      SpinKitCircle(
+                        color: Colors.red,
                         size: 30,
                       ),
                       SizedBox(height: 10),
